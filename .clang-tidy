@@ -1,0 +1,6 @@
+---
+Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,boost*,bugprone*,clang-analyzer*,concurrency*,performance*,readability*,-readability-function-cognitive-complexity,-readability-braces-around-statements'
+WarningsAsErrors: ''
+#HeaderFilterRegex: 'haversine_input_generator\/.*'
+AnalyzeTemporaryDtors: false
+FormatStyle:     llvm

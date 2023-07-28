@@ -1,0 +1,14 @@
+Diagnostics:
+  Suppress:
+    - 'builtin_definition'
+    - 'deduced_non_class_template_specialization_type'
+CompileFlags:
+  Compiler: x86_64-linux-gnu
+  Add:
+    - -I/usr/include/c++/11
+    - -I/usr/include/x86_64-linux-gnu/c++/11
+    - -I/usr/include/c++/11/backward
+    - -I/usr/lib/gcc/x86_64-linux-gnu/11/include
+    - -I/usr/local/include
+    - -I/usr/include/x86_64-linux-gnu
+    - -I/usr/include
