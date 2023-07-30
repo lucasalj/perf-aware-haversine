@@ -11,7 +11,8 @@ if(CCACHE_FOUND)
 endif(CCACHE_FOUND)
 
 cmake_minimum_required(VERSION 3.20)
-project(Haversine VERSION 1.0)
+project(Haversine VERSION 1.0
+                  LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
 
-add_executable(haversine_generator_release haversine_generator_release/main.cc)
-target_include_directories(haversine_generator_release PRIVATE haversine_generator_release)
+add_subdirectory(haversine_generator_release)
