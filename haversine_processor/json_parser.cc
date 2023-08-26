@@ -129,6 +129,15 @@ void parseInteger(Context &ctx, std::string_view &integer) {
   }
 }
 
+void parseElement(Context &ctx, Value &out) {
+  skipWhiteSpace(ctx);
+  Value::parse(ctx, out);
+  if (ctx.mAbort) {
+    return;
+  }
+  skipWhiteSpace(ctx);
+}
+
 void printIndent(std::string &out, json_parser::PrintContext &ctx) {
   const auto newSize = out.size() + ctx.mCurrentIndentation;
   out.resize(newSize, ' ');
@@ -136,33 +145,19 @@ void printIndent(std::string &out, json_parser::PrintContext &ctx) {
 
 } // namespace
 
-Json Json::parse(std::string_view input) {
-  Json json;
+void parse(std::string_view input, Value &json) {
   Context ctx{.mInput = input,
               .mCurrentPos = 0,
               .mCurrentLine = 1,
               .mCurrentColumn = 0,
               .mAbort = false,
               .mErrorMessage = ""};
-  Element::parse(ctx, json.mElement);
+  parseElement(ctx, json);
   if (ctx.mAbort) {
     ctx.mErrorMessage += " at " + std::to_string(ctx.mCurrentLine) + ":" +
                          std::to_string(ctx.mCurrentColumn);
     throw std::runtime_error(ctx.mErrorMessage);
   }
-  return json;
-}
-
-void Element::parse(Context &ctx, Element &out) {
-  if (!out.mValue) {
-    out.mValue = std::make_unique<Value>();
-  }
-  skipWhiteSpace(ctx);
-  Value::parse(ctx, *out.mValue);
-  if (ctx.mAbort) {
-    return;
-  }
-  skipWhiteSpace(ctx);
 }
 
 void Value::parse(Context &ctx, Value &out) {
@@ -415,8 +410,8 @@ void Array::parse(Context &ctx, Array &out) {
       }
       currChar = ctx.mInput[ctx.mCurrentPos];
     }
-    auto &newElem = out.mElements.emplace_back(std::make_unique<Element>());
-    Element::parse(ctx, *newElem);
+    auto &newElem = out.mElements.emplace_back(std::make_unique<Value>());
+    parseElement(ctx, *newElem);
     if (ctx.mAbort)
       return;
     skipWhiteSpace(ctx);
@@ -493,8 +488,8 @@ void Object::parse(Context &ctx, Object &out) {
       ctx.mErrorMessage = "Unexpected end of input while parsing an object";
       return;
     }
-    newMember.mElement = std::make_unique<Element>();
-    Element::parse(ctx, *newMember.mElement);
+    newMember.mElement = std::make_unique<Value>();
+    parseElement(ctx, *newMember.mElement);
     if (ctx.mAbort)
       return;
     skipWhiteSpace(ctx);
@@ -547,15 +542,9 @@ Number::InternalNumber::~InternalNumber() {}
 
 Number::~Number() {}
 
-void Json::print(std::string &out) const {
+void print(std::string &out, Value &json) {
   PrintContext ctx{};
-  mElement.print(out, ctx);
-}
-
-void Element::print(std::string &out, PrintContext &ctx) const {
-  if (mValue) {
-    mValue->print(out, ctx);
-  }
+  json.print(out, ctx);
 }
 
 void Value::print(std::string &out, PrintContext &ctx) const {
@@ -672,60 +661,59 @@ void False::print(std::string &out, PrintContext &ctx) const { out += "false"; }
 
 void Null::print(std::string &out, PrintContext &ctx) const { out += "null"; }
 
-Value &Json::getMemberValue(std::string_view name) {
-  return mElement.getMemberValue(name);
-}
-
-Value &Element::getMemberValue(std::string_view name) {
-  return mValue->getMemberValue(name);
-}
-
-Value &Value::getMemberValue(std::string_view name) {
+const Value &Value::getMemberValue(std::string_view name) const {
   if (mValueType == ValueType::OBJECT)
     return mInternalValue.mObject.getMemberValue(name);
   throw std::runtime_error(
       "Atempted to get member value from value that is not an object");
 }
 
-Value &Object::getMemberValue(std::string_view name) {
+const Value &Object::getMemberValue(std::string_view name) const {
   for (auto &member : mMembers) {
     if (member.mName.mValue == name) {
-      return *member.mElement->mValue;
+      return *member.mElement;
     }
   }
   throw std::runtime_error("member not found");
 }
 
-Number &Value::getNumber() {
-  if (mValueType == ValueType::NUMBER)
-    return mInternalValue.mNumber;
+const std::uint64_t &Value::getUnsigned() const {
+  if (mValueType == ValueType::NUMBER) {
+    if (mInternalValue.mNumber.mNumberType == Number::NumberType::UNSIGNED)
+      return mInternalValue.mNumber.mInternalNumber.mUnsigned;
+    throw std::runtime_error(
+        "Atempted to get unsigned from number that is not unsigned");
+  }
   throw std::runtime_error(
       "Atempted to get number from value that is not a number");
 }
 
-std::uint64_t &Number::getUnsinged() {
-  if (mNumberType == NumberType::UNSIGNED)
-    return mInternalNumber.mUnsigned;
+const std::int64_t &Value::getSigned() const {
+  if (mValueType == ValueType::NUMBER) {
+    if (mInternalValue.mNumber.mNumberType == Number::NumberType::SIGNED)
+      return mInternalValue.mNumber.mInternalNumber.mSigned;
+    throw std::runtime_error(
+        "Atempted to get signed from number that is not signed");
+  }
   throw std::runtime_error(
-      "Atempted to get unsigned from number that is not unsigned");
-}
-std::int64_t Number::getSigned() {
-  if (mNumberType == NumberType::SIGNED)
-    return mInternalNumber.mSigned;
-  throw std::runtime_error(
-      "Atempted to get signed from number that is not signed");
+      "Atempted to get number from value that is not a number");
 }
 
-double Number::getFloatingPoint() {
-  if (mNumberType == NumberType::FLOATING_POINT)
-    return mInternalNumber.mFloat;
+const double &Value::getFloatingPoint() const {
+  if (mValueType == ValueType::NUMBER) {
+    if (mInternalValue.mNumber.mNumberType ==
+        Number::NumberType::FLOATING_POINT)
+      return mInternalValue.mNumber.mInternalNumber.mFloat;
+    throw std::runtime_error("Atempted to get floating point from number that "
+                             "is not floating point");
+  }
   throw std::runtime_error(
-      "Atempted to get floating point from number that is not floating point");
+      "Atempted to get number from value that is not a number");
 }
 
-Array &Value::getArray() {
+const std::vector<std::unique_ptr<Value>> &Value::getArray() const {
   if (mValueType == ValueType::ARRAY)
-    return mInternalValue.mArray;
+    return mInternalValue.mArray.mElements;
   throw std::runtime_error(
       "Atempted to get number from value that is not a number");
 }

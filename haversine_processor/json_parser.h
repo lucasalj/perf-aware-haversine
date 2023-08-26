@@ -27,38 +27,27 @@ struct String {
 
 struct Value;
 
-struct Element {
-  static void parse(Context &ctx, Element &out);
-  void print(std::string &out, PrintContext &ctx) const;
-  Value &getMemberValue(std::string_view name);
-  std::unique_ptr<Value> mValue;
-};
-
 struct Member {
   String mName;
-  std::unique_ptr<Element> mElement;
+  std::unique_ptr<Value> mElement;
 };
 
 struct Object {
   static void parse(Context &ctx, Object &out);
   void print(std::string &out, PrintContext &ctx) const;
-  Value &getMemberValue(std::string_view name);
+  const Value &getMemberValue(std::string_view name) const;
   std::vector<Member> mMembers;
 };
 
 struct Array {
   static void parse(Context &ctx, Array &out);
   void print(std::string &out, PrintContext &ctx) const;
-  std::vector<std::unique_ptr<Element>> mElements;
+  std::vector<std::unique_ptr<Value>> mElements;
 };
 
 struct Number {
   static void parse(Context &ctx, Number &out);
   void print(std::string &out, PrintContext &ctx) const;
-
-  std::uint64_t &getUnsinged();
-  std::int64_t getSigned();
-  double getFloatingPoint();
 
   ~Number();
 
@@ -97,10 +86,13 @@ struct Null {
 struct Value {
   static void parse(Context &ctx, Value &out);
   void print(std::string &out, PrintContext &ctx) const;
-  Value &getMemberValue(std::string_view name);
-  Number &getNumber();
-  Array &getArray();
+  const Value &getMemberValue(std::string_view name) const;
+  const std::uint64_t &getUnsigned() const;
+  const std::int64_t &getSigned() const;
+  const double &getFloatingPoint() const;
+  const std::vector<std::unique_ptr<Value>> &getArray() const;
 
+  Value() {}
   ~Value();
 
   enum ValueType : std::uint8_t {
@@ -129,12 +121,6 @@ struct Value {
   InternalValue mInternalValue{};
 };
 
-struct Json {
-  static Json from(Element element);
-  static Json parse(std::string_view input);
-  void print(std::string &out) const;
-  Value &getMemberValue(std::string_view name);
-
-  Element mElement;
-};
+void parse(std::string_view input, Value &json);
+void print(std::string &out, Value &json);
 } // namespace json_parser

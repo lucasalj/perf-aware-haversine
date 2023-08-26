@@ -69,17 +69,18 @@ int main(int argc, const char *argv[]) {
     readIndex += bytesRead;
   }
   std::string_view fileString(buffer.get(), readIndex);
-  auto json = json_parser::Json::parse(fileString);
+  auto json = json_parser::Value{};
+  json_parser::parse(fileString, json);
 
-  auto &arrayOfPairs = json.getMemberValue("pairs").getArray().mElements;
+  const auto &arrayOfPairs = json.getMemberValue("pairs").getArray();
   auto sumCoeficient =
       !arrayOfPairs.empty() ? (1. / double(arrayOfPairs.size())) : 0.;
   double sum = 0;
   for (const auto &elem : arrayOfPairs) {
-    auto x0 = elem->getMemberValue("x0").getNumber().getFloatingPoint();
-    auto y0 = elem->getMemberValue("y0").getNumber().getFloatingPoint();
-    auto x1 = elem->getMemberValue("x1").getNumber().getFloatingPoint();
-    auto y1 = elem->getMemberValue("y1").getNumber().getFloatingPoint();
+    auto x0 = elem->getMemberValue("x0").getFloatingPoint();
+    auto y0 = elem->getMemberValue("y0").getFloatingPoint();
+    auto x1 = elem->getMemberValue("x1").getFloatingPoint();
+    auto y1 = elem->getMemberValue("y1").getFloatingPoint();
 
     auto haversineDistance = referenceHaversine(x0, y0, x1, y1);
     sum += sumCoeficient * haversineDistance;
