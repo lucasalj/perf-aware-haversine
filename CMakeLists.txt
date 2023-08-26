@@ -16,3 +16,4 @@ project(Haversine VERSION 1.0
 set(CMAKE_CXX_STANDARD 20)
 
 add_subdirectory(haversine_input_generator)
+add_subdirectory(haversine_processor)
